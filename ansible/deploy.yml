@@ -1,0 +1,78 @@
+- name: Deploy Vue app with Nginx on localhost
+  hosts: web
+  become: yes
+
+  vars:
+    project_dir: /home/ubuntu/projects/vue-ansible-ci-cd
+    build_dir: "{{ project_dir }}/dist"
+    deploy_dir: /var/www/vue-app
+    nginx_site: /etc/nginx/sites-available/vue-app
+
+  tasks:
+    - name: Install required system packages (без npm)
+      apt:
+        name:
+          - git
+          - nginx
+        state: present
+        update_cache: yes
+
+    - name: Встановити залежності npm у проєкті
+      community.general.npm:
+        path: "{{ project_dir }}"
+        production: no
+
+    - name: Зібрати Vue-додаток
+      command: npm run build
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Створити директорію для деплою
+      file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    - name: Скопіювати зібрані файли у /var/www/vue-app
+      copy:
+        src: "{{ build_dir }}/"
+        dest: "{{ deploy_dir }}/"
+        owner: www-data
+        group: www-data
+        mode: "0644"
+        remote_src: yes
+
+    - name: Створити конфіг Nginx для Vue-app
+      copy:
+        dest: "{{ nginx_site }}"
+        content: |
+          server {
+              listen 80;
+              server_name _;
+              root {{ deploy_dir }};
+              index index.html;
+
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+          }
+
+    - name: Увімкнути сайт vue-app
+      file:
+        src: "{{ nginx_site }}"
+        dest: /etc/nginx/sites-enabled/vue-app
+        state: link
+        force: yes
+
+    - name: Вимкнути дефолтний сайт Nginx
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Перезапустити Nginx
+      service:
+        name: nginx
+        state: restarted
+        enabled: yes
