@@ -5,7 +5,7 @@ import RevenueByLocationMap from './cards/RevenueByLocationMap.vue'
 import DataSection from './DataSection.vue'
 import YearlyBreakup from './cards/YearlyBreakup.vue'
 import MonthlyEarnings from './cards/MonthlyEarnings.vue'
-import RegionRevenue from './cards'
+import RegionRevenue from './cards/RegionRevenue.vue'
 import Timeline from './cards/Timeline.vue'
 </script>
 
